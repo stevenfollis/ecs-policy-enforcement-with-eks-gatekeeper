@@ -1,0 +1,208 @@
+apiVersion: ec2.aws.crossplane.io/v1beta1
+kind: VPC
+metadata:
+  name: cp-vpc
+spec:
+  forProvider:
+    region: us-west-2
+    cidrBlock: 10.0.0.0/16
+    enableDnsSupport: true
+    enableDnsHostNames: true
+    instanceTenancy: default
+  providerConfigRef:
+    name: aws-provider-config
+---
+apiVersion: ec2.aws.crossplane.io/v1beta1
+kind: SecurityGroup
+metadata:
+  name: cp-sg
+spec:
+  forProvider:
+    description: Security group - to protect and serve.
+    region: us-west-2
+    vpcIdRef:
+      name: cp-vpc  
+    groupName: cp-sg
+    ingress:
+      - ipProtocol: '-1'
+        ipRanges:
+          - cidrIp: 0.0.0.0/0
+    egress:
+      - ipProtocol: '-1'
+        ipRanges:
+          - cidrIp: 0.0.0.0/0
+  providerConfigRef:
+    name: aws-provider-config
+---
+apiVersion: ec2.aws.crossplane.io/v1beta1
+kind: Subnet
+metadata:
+  name: cp-subnet-pvt-1
+spec:
+  forProvider:
+    region: us-west-2
+    availabilityZone: us-west-2a
+    cidrBlock: 10.0.1.0/24
+    vpcIdRef:
+      name: cp-vpc
+    mapPublicIPOnLaunch: false
+  providerConfigRef:
+    name: aws-provider-config
+---
+apiVersion: ec2.aws.crossplane.io/v1beta1
+kind: Subnet
+metadata:
+  name: cp-subnet-pvt-2
+spec:
+  forProvider:
+    region: us-west-2
+    availabilityZone: us-west-2b
+    cidrBlock: 10.0.2.0/24
+    vpcIdRef:
+      name: cp-vpc
+    mapPublicIPOnLaunch: false
+  providerConfigRef:
+    name: aws-provider-config
+---
+apiVersion: ec2.aws.crossplane.io/v1beta1
+kind: Subnet
+metadata:
+  name: cp-subnet-pvt-3
+spec:
+  forProvider:
+    region: us-west-2
+    availabilityZone: us-west-2c
+    cidrBlock: 10.0.3.0/24
+    vpcIdRef:
+      name: cp-vpc
+    mapPublicIPOnLaunch: false
+  providerConfigRef:
+    name: aws-provider-config
+---
+apiVersion: ec2.aws.crossplane.io/v1beta1
+kind: Subnet
+metadata:
+  name: cp-subnet-pub-1
+spec:
+  forProvider:
+    region: us-west-2
+    availabilityZone: us-west-2a
+    cidrBlock: 10.0.4.0/24
+    vpcIdRef:
+      name: cp-vpc
+    mapPublicIPOnLaunch: true
+  providerConfigRef:
+    name: aws-provider-config
+---
+apiVersion: ec2.aws.crossplane.io/v1beta1
+kind: Subnet
+metadata:
+  name: cp-subnet-pub-2
+spec:
+  forProvider:
+    region: us-west-2
+    availabilityZone: us-west-2b
+    cidrBlock: 10.0.5.0/24
+    vpcIdRef:
+      name: cp-vpc
+    mapPublicIPOnLaunch: true
+  providerConfigRef:
+    name: aws-provider-config
+---
+apiVersion: ec2.aws.crossplane.io/v1beta1
+kind: Subnet
+metadata:
+  name: cp-subnet-pub-3
+spec:
+  forProvider:
+    region: us-west-2
+    availabilityZone: us-west-2c
+    cidrBlock: 10.0.6.0/24
+    vpcIdRef:
+      name: cp-vpc
+    mapPublicIPOnLaunch: true
+  providerConfigRef:
+    name: aws-provider-config
+---
+apiVersion: ec2.aws.crossplane.io/v1beta1
+kind: Address
+metadata:
+  name: cp-eip
+spec:
+  forProvider:
+    region: us-west-2
+  providerConfigRef:
+    name: aws-provider-config
+---
+apiVersion: ec2.aws.crossplane.io/v1beta1
+kind: NATGateway
+metadata:
+  name: cp-nat
+spec:
+  forProvider:
+    region: us-west-2
+    connectivityType: public
+    allocationIdRef:
+      name: cp-eip
+    subnetIdRef:
+      name: cp-subnet-pub-1
+  providerConfigRef:
+    name: aws-provider-config
+---
+apiVersion: ec2.aws.crossplane.io/v1beta1
+kind: InternetGateway
+metadata:
+  name: cp-igw
+spec:
+  forProvider:
+    region: us-west-2
+    vpcIdRef:
+      name: cp-vpc
+  providerConfigRef:
+    name: aws-provider-config
+---
+apiVersion: ec2.aws.crossplane.io/v1beta1
+kind: RouteTable
+metadata:
+  name: cp-pub-rt
+spec:
+  forProvider:
+    region: us-west-2
+    routes:
+      - destinationCidrBlock: 0.0.0.0/0
+        gatewayIdRef:
+          name: cp-igw
+    associations:
+      - subnetIdRef:
+          name: cp-subnet-pub-1
+      - subnetIdRef:
+          name: cp-subnet-pub-2
+      - subnetIdRef:
+          name: cp-subnet-pub-3
+    vpcIdRef:
+      name: cp-vpc
+  providerConfigRef:
+    name: aws-provider-config
+--- 
+apiVersion: ec2.aws.crossplane.io/v1beta1
+kind: RouteTable
+metadata:
+  name: cp-pvt-rt
+spec:
+  forProvider:
+    region: us-west-2
+    routes:
+      - destinationCidrBlock: 0.0.0.0/0
+        natGatewayIdRef:
+          name: cp-nat
+    associations:
+      - subnetIdRef:
+          name: cp-subnet-pvt-1
+      - subnetIdRef:
+          name: cp-subnet-pvt-2
+      - subnetIdRef:
+          name: cp-subnet-pvt-3
+    vpcIdRef:
+      name: cp-vpc
+  providerConfigRef:
+    name: aws-provider-config

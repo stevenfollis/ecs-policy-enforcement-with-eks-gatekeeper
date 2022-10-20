@@ -1,0 +1,13 @@
+apiVersion: ecs.aws.crossplane.io/v1alpha1
+kind: Cluster
+metadata:
+  name: cp-ecs
+spec:
+  forProvider:
+    clusterName: cp-ecs
+    region: us-west-2
+    capacityProviders:
+    - FARGATE
+    - FARGATE_SPOT
+  providerConfigRef:
+    name: aws-provider-config

@@ -1,0 +1,9 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: EcsBlockLarge
+metadata:
+  name: svc-sizer
+spec:
+  match:
+    kinds:
+      - apiGroups: ["ecs.aws.crossplane.io"]
+        kinds: ["TaskDefinition"]

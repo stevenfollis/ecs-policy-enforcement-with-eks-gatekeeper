@@ -1,0 +1,24 @@
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: ecsblocklarge
+spec:
+  crd:
+    spec:
+      names:
+        kind: EcsBlockLarge
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package ecsblocklarge
+
+        contains_16(cpu) = true {
+          cpu == "16384"
+        }
+
+        violation[{"msg": msg}] {
+          input.review.kind.kind == "TaskDefinition"
+          cpu := input.review.object.spec.forProvider.cpu
+          contains_16(cpu)
+          msg := "User is not allowed to create services using 16 vCPUs. Please shrink."
+        }

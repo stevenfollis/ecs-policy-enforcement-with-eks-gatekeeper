@@ -1,0 +1,87 @@
+apiVersion: ecs.aws.crossplane.io/v1alpha1
+kind: Service
+metadata:
+  name: cp-nginx-svc
+spec:
+  forProvider:
+    region: us-west-2
+    clusterRef:
+      name: cp-ecs
+    desiredCount: 2
+    enableECSManagedTags: true
+    enableExecuteCommand: false
+    healthCheckGracePeriodSeconds: 300
+    launchType: FARGATE
+    loadBalancers:
+    - containerName: web
+      containerPort: 80
+      targetGroupARNRef:
+        name: cp-alb-tg
+    networkConfiguration:
+      awsvpcConfiguration:
+        assignPublicIP: DISABLED
+        securityGroupRefs:
+        - name: cp-sg
+        subnetRefs:
+        - name: cp-subnet-pvt-1
+        - name: cp-subnet-pvt-2
+        - name: cp-subnet-pvt-3
+    schedulingStrategy: REPLICA
+    taskDefinitionRef:
+      name: cp-nginx
+  providerConfigRef:
+    name: aws-provider-config
+---
+apiVersion: elbv2.aws.crossplane.io/v1alpha1
+kind: LoadBalancer
+metadata:
+  name: cp-alb
+spec:
+  forProvider:
+    name: cp-alb
+    loadBalancerType: application
+    region: us-west-2
+    securityGroupRefs:
+      - name: cp-sg
+    subnetRefs:
+      - name: cp-subnet-pub-1
+      - name: cp-subnet-pub-2
+      - name: cp-subnet-pub-3
+  providerConfigRef:
+    name: aws-provider-config
+---
+apiVersion: elbv2.aws.crossplane.io/v1alpha1
+kind: TargetGroup
+metadata:
+  name: cp-alb-tg
+spec:
+  forProvider:
+    name: cp-alb-tg
+    port: 80
+    protocol: HTTP
+    region: us-west-2
+    targetType: ip
+    vpcIdRef:
+      name: cp-vpc
+  providerConfigRef:
+    name: aws-provider-config
+---
+apiVersion: elbv2.aws.crossplane.io/v1alpha1
+kind: Listener
+metadata:
+  name: cp-alb-listener
+spec:
+  forProvider:
+    region: us-west-2
+    defaultActions:
+      - actionType: forward
+        forwardConfig:
+          targetGroups:
+            - targetGroupArnRef:
+                name: cp-alb-tg
+    loadBalancerArnRef:
+      name: cp-alb
+    port: 80
+    protocol: HTTP
+  providerConfigRef:
+    name: aws-provider-config
